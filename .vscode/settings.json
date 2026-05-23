@@ -1,0 +1,9 @@
+{
+        "cmake.configureArgs": [
+            "-DCMAKE_PREFIX_PATH=C:/clibs/curl-8.20.0_2-win64-mingw;C:/clibs/cJSON-1.7.19/release"
+        ],
+        "cmake.environment": {
+            "PATH": "C:/clibs/curl-8.20.0_2-win64-mingw/bin;C:/clibs/cJSON-1.7.19/release/bin;${env:PATH}"
+        },
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}
