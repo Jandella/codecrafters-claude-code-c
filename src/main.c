@@ -22,6 +22,24 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
     return total;
 }
 
+static void add_read_tool(cJSON *tools) {
+    cJSON *tool = cJSON_CreateObject();
+    cJSON_AddItemToArray(tools, tool);
+    cJSON_AddStringToObject(tool, "type", "function");
+    cJSON *function = cJSON_AddObjectToObject(tool, "function");
+    cJSON_AddStringToObject(function, "name", "Read");
+    cJSON_AddStringToObject(function, "description", "Read and return the contents of a file");
+    cJSON *parameters = cJSON_AddObjectToObject(function, "parameters");
+    cJSON_AddStringToObject(function, "type", "object");
+    cJSON *properties = cJSON_AddObjectToObject(parameters, "properties");
+    cJSON *file_path = cJSON_AddObjectToObject(properties, "file_path");
+    cJSON_AddStringToObject(file_path, "type", "string");
+    cJSON_AddStringToObject(file_path, "description", "The path to the file to read");
+    cJSON *required_array = cJSON_AddArrayToObject(parameters, "required");
+    cJSON *required_element = cJSON_CreateString("file_path");
+    cJSON_AddItemToArray(required_array, required_element);
+}
+
 int main(int argc, char *argv[]) {
     const char *prompt = NULL;
     if (getopt(argc, argv, "p:") == 'p') prompt = optarg;
@@ -32,19 +50,24 @@ int main(int argc, char *argv[]) {
 
     const char *api_key = getenv("OPENROUTER_API_KEY");
     const char *base_url = getenv("OPENROUTER_BASE_URL");
+    const char *local_model = getenv("LOCAL_MODEL");
     if (!base_url || !*base_url) base_url = "https://openrouter.ai/api/v1";
+    if(!local_model || !*local_model) local_model = "anthropic/claude-haiku-4.5";
     if (!api_key || !*api_key) {
         fprintf(stderr, "OPENROUTER_API_KEY is not set\n");
         return 1;
     }
+    
 
     cJSON *req = cJSON_CreateObject();
-    cJSON_AddStringToObject(req, "model", "anthropic/claude-haiku-4.5");
+    cJSON_AddStringToObject(req, "model", local_model);
     cJSON *messages = cJSON_AddArrayToObject(req, "messages");
     cJSON *msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "role", "user");
     cJSON_AddStringToObject(msg, "content", prompt);
     cJSON_AddItemToArray(messages, msg);
+    cJSON *tools = cJSON_AddArrayToObject(req, "tools");
+    add_read_tool(tools);
 
     char *body = cJSON_PrintUnformatted(req);
     cJSON_Delete(req);
