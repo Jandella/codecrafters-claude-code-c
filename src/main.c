@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
     cJSON *content = cJSON_GetObjectItem(message, "content");
 
     char *response_data = cJSON_Print(json);
-    printf("%s\n", response_data);
+    fprintf(stderr, "%s\n", response_data);
     free(response_data);
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
