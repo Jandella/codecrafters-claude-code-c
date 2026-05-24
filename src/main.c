@@ -127,10 +127,10 @@ int main(int argc, char *argv[]) {
         char *name_read = cJSON_GetStringValue(name);
         fprintf(stderr, "%s\n", name_read);
         if(strcmp("Read", name_read) == 0) {
-            printf("inside if read command here\n");
+            fprintf(stderr, "inside if read command here\n");
             cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
             char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
-            printf("%s\n", raw_arguments);
+            fprintf(stderr, "raw args: %s\n", raw_arguments);
             cJSON *parsed_arguments = cJSON_Parse(raw_arguments);
             if (!parsed_arguments) {
                 fprintf(stderr, "Failed to parse function arguments\n");
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
             cJSON *file_path_object = cJSON_GetObjectItem(parsed_arguments, "file_path");
             char *file_path = cJSON_GetStringValue(file_path_object);
             
-            printf("Read tool to read file at path %s\n", file_path);
+            fprintf(stderr, "Read tool to read file at path %s\n", file_path);
             FILE *fptr;
             fptr = fopen(file_path, "r");
             if(fptr == NULL){
