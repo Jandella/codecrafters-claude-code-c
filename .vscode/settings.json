@@ -7,7 +7,7 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-p What is the content of C:/Scambio/test.txt? Print exact file contents without backticks."
+            "-p 'What does `orange.py` contain? Respond with only file contents, no surrounding text/backticks.'"
             //"-p How many tools are available to you in this request? Number only."
             //"-p Please compute 9 + 6. Respond with only a number."
         ]

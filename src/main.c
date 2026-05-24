@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
         char *name_read = cJSON_GetStringValue(name);
         printf("%s\n", name_read);
         if(strcmp("Read", name_read) == 0) {
+            printf("inside if read command here\n");
             cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
             char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
             printf("%s\n", raw_arguments);
