@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
 
     char *body = cJSON_PrintUnformatted(req);
     cJSON_Delete(req);
+    fprintf(stderr, "%s\n", body);
 
     char url[512];
     snprintf(url, sizeof(url), "%s/chat/completions", base_url);
