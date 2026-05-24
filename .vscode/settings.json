@@ -7,7 +7,9 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-p: How many tools are available to you in this request? Number only."
+            "-p What is the content of C:/Scambio/test.txt? Print exact file contents without backticks."
+            //"-p How many tools are available to you in this request? Number only."
+            //"-p Please compute 9 + 6. Respond with only a number."
         ]
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"

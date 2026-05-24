@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
+#include "read_tool.h"
 
 struct response_buf {
     char *data;
@@ -20,24 +21,6 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
     buf->size += total;
     buf->data[buf->size] = '\0';
     return total;
-}
-
-static void add_read_tool(cJSON *tools) {
-    cJSON *tool = cJSON_CreateObject();
-    cJSON_AddItemToArray(tools, tool);
-    cJSON_AddStringToObject(tool, "type", "function");
-    cJSON *function = cJSON_AddObjectToObject(tool, "function");
-    cJSON_AddStringToObject(function, "name", "Read");
-    cJSON_AddStringToObject(function, "description", "Read and return the contents of a file");
-    cJSON *parameters = cJSON_AddObjectToObject(function, "parameters");
-    cJSON_AddStringToObject(function, "type", "object");
-    cJSON *properties = cJSON_AddObjectToObject(parameters, "properties");
-    cJSON *file_path = cJSON_AddObjectToObject(properties, "file_path");
-    cJSON_AddStringToObject(file_path, "type", "string");
-    cJSON_AddStringToObject(file_path, "description", "The path to the file to read");
-    cJSON *required_array = cJSON_AddArrayToObject(parameters, "required");
-    cJSON *required_element = cJSON_CreateString("file_path");
-    cJSON_AddItemToArray(required_array, required_element);
 }
 
 int main(int argc, char *argv[]) {
@@ -122,11 +105,65 @@ int main(int argc, char *argv[]) {
     cJSON *message = cJSON_GetObjectItem(first, "message");
     cJSON *content = cJSON_GetObjectItem(message, "content");
 
+    char *response_data = cJSON_Print(json);
+    printf("%s\n", response_data);
+    free(response_data);
+
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     fprintf(stderr, "Logs from your program will appear here!\n");
+    
 
-    // TODO: Uncomment the line below to pass the first stage
-    printf("%s", cJSON_GetStringValue(content));
+    cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
+    if (!cJSON_IsArray(tool_calls) || cJSON_GetArraySize(tool_calls) == 0) {
+        // no tool calls -> print the message content
+        printf("%s", cJSON_GetStringValue(content));
+    }
+    else {
+        //handles the tool call
+        cJSON *first_tool_call = cJSON_GetArrayItem(tool_calls, 0);
+        cJSON *function_object = cJSON_GetObjectItem(first_tool_call, "function");
+        cJSON *name = cJSON_GetObjectItem(function_object, "name");
+        char *name_read = cJSON_GetStringValue(name);
+        printf("%s\n", name_read);
+        if(strcmp("Read", name_read) == 0) {
+            cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
+            char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
+            printf("%s\n", raw_arguments);
+            cJSON *parsed_arguments = cJSON_Parse(raw_arguments);
+            if (!parsed_arguments) {
+                fprintf(stderr, "Failed to parse function arguments\n");
+                return 1;
+            }
+            cJSON *file_path_object = cJSON_GetObjectItem(parsed_arguments, "file_path");
+            char *file_path = cJSON_GetStringValue(file_path_object);
+            
+            printf("Read tool to read file at path %s\n", file_path);
+            FILE *fptr;
+            fptr = fopen(file_path, "r");
+            if(fptr == NULL){
+                fclose(fptr);
+                fprintf(stderr, "Failed to open file %s\n", file_path);
+                return 1;
+            }
+            char *fcontent = NULL;
+            long file_size = get_file_size(fptr);
+            if(file_size == -1){
+                fclose(fptr);
+                fprintf(stderr, "Failed to get the file size\n");
+                return -1;
+            }
+            fcontent = malloc(sizeof(char) * file_size + 1);
+            fread(fcontent, 1, file_size, fptr);
+            fclose(fptr);
+            fcontent[file_size] = '\0';
+            printf("%s", fcontent);
+            cJSON_Delete(parsed_arguments);
+            free(fcontent);
+        }
+        
+
+    }
+    
 
     cJSON_Delete(json);
     return 0;
