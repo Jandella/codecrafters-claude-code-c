@@ -120,11 +120,12 @@ int main(int argc, char *argv[]) {
     }
     else {
         //handles the tool call
+        fprintf(stderr, "Handling tool call\n");
         cJSON *first_tool_call = cJSON_GetArrayItem(tool_calls, 0);
         cJSON *function_object = cJSON_GetObjectItem(first_tool_call, "function");
         cJSON *name = cJSON_GetObjectItem(function_object, "name");
         char *name_read = cJSON_GetStringValue(name);
-        printf("%s\n", name_read);
+        fprintf(stderr, "%s\n", name_read);
         if(strcmp("Read", name_read) == 0) {
             printf("inside if read command here\n");
             cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
