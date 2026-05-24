@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
             if(file_size == -1){
                 fclose(fptr);
                 fprintf(stderr, "Failed to get the file size\n");
-                return -1;
+                return 1;
             }
             fcontent = malloc(sizeof(char) * file_size + 1);
             fread(fcontent, 1, file_size, fptr);
