@@ -132,13 +132,12 @@ int main(int argc, char *argv[]) {
             cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
             char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
             fprintf(stderr, "raw args: %s\n", raw_arguments);
-            cJSON *parsed_arguments = cJSON_Parse(raw_arguments);
-            if (!parsed_arguments) {
-                fprintf(stderr, "Failed to parse function arguments\n");
+            char file_path[100];
+            size_t length = retrieve_argument_from_tool(raw_arguments, file_path, 100);
+            if(length < 0){
+                fprintf(stderr, "Failed to retrieve argument from tool\n");
                 return 1;
             }
-            cJSON *file_path_object = cJSON_GetObjectItem(parsed_arguments, "file_path");
-            char *file_path = cJSON_GetStringValue(file_path_object);
             
             fprintf(stderr, "Read tool to read file at path %s\n", file_path);
             FILE *fptr;
@@ -160,7 +159,6 @@ int main(int argc, char *argv[]) {
             fclose(fptr);
             fcontent[file_size] = '\0';
             printf("%s", fcontent);
-            cJSON_Delete(parsed_arguments);
             free(fcontent);
         }
         
