@@ -4,12 +4,20 @@
 #include <unistd.h>
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
+#include "agent.h"
 #include "read_tool.h"
 
+typedef struct api_call_params {
+    char *api_key;
+    char *base_url;
+    char *local_model
+} api_call_params;
 struct response_buf {
     char *data;
     size_t size;
 };
+
+static api_call_params apiCfg = {NULL, NULL, NULL};
 
 static size_t curl_write_response(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t total = size * nmemb;
@@ -23,6 +31,9 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
     return total;
 }
 
+static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, struct response_buf * resp);
+
+
 int main(int argc, char *argv[]) {
     const char *prompt = NULL;
     if (getopt(argc, argv, "p:") == 'p') prompt = optarg;
@@ -31,56 +42,23 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    const char *api_key = getenv("OPENROUTER_API_KEY");
-    const char *base_url = getenv("OPENROUTER_BASE_URL");
-    const char *local_model = getenv("LOCAL_MODEL");
-    if (!base_url || !*base_url) base_url = "https://openrouter.ai/api/v1";
-    if(!local_model || !*local_model) local_model = "anthropic/claude-haiku-4.5";
-    if (!api_key || !*api_key) {
+    apiCfg.api_key = getenv("OPENROUTER_API_KEY");
+    apiCfg.base_url = getenv("OPENROUTER_BASE_URL");
+    apiCfg.local_model = getenv("LOCAL_MODEL");
+    if (!apiCfg.base_url || !*apiCfg.base_url) apiCfg.base_url = "https://openrouter.ai/api/v1";
+    if(!apiCfg.local_model || !*apiCfg.local_model) apiCfg.local_model = "anthropic/claude-haiku-4.5";
+    if (!apiCfg.api_key || !*apiCfg.api_key) {
         fprintf(stderr, "OPENROUTER_API_KEY is not set\n");
         return 1;
     }
     
-
-    cJSON *req = cJSON_CreateObject();
-    cJSON_AddStringToObject(req, "model", local_model);
-    cJSON *messages = cJSON_AddArrayToObject(req, "messages");
-    cJSON *msg = cJSON_CreateObject();
-    cJSON_AddStringToObject(msg, "role", "user");
-    cJSON_AddStringToObject(msg, "content", prompt);
-    cJSON_AddItemToArray(messages, msg);
-    cJSON *tools = cJSON_AddArrayToObject(req, "tools");
-    add_read_tool(tools);
-
-    char *body = cJSON_PrintUnformatted(req);
-    cJSON_Delete(req);
-    fprintf(stderr, "%s\n", body);
-
-    char url[512];
-    snprintf(url, sizeof(url), "%s/chat/completions", base_url);
-
-    char auth_header[512];
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", api_key);
+    cAgent *agent = cAgent_createAgent();
+    cAgent_addPrompt(agent, prompt);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    CURL *curl = curl_easy_init();
     struct response_buf resp = {NULL, 0};
-    struct curl_slist *headers = NULL;
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(headers, auth_header);
-
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_response);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resp);
-
-    CURLcode res = curl_easy_perform(curl);
-
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
+    CURLcode res = api_call(&apiCfg, agent, &resp);
     curl_global_cleanup();
-    free(body);
 
     if (res != CURLE_OK) {
         fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
@@ -167,5 +145,56 @@ int main(int argc, char *argv[]) {
     
 
     cJSON_Delete(json);
+    cAgent_destroyAgent(agent);
     return 0;
+}
+
+static CURLcode api_call(api_call_params *cfg, cAgent *agent, struct response_buf * resp) {
+    cJSON *req = cJSON_CreateObject();
+    cJSON_AddStringToObject(req, "model", cfg->local_model);
+    cJSON *messages = cJSON_AddArrayToObject(req, "messages");
+    messages_array *ma = agent->messages;
+    for (size_t i = 0; i < ma->count; i++)
+    {
+        message_prompt item = ma->first[i];
+        cJSON *msg = cJSON_CreateObject();
+        cJSON_AddStringToObject(msg, "role", item.role);
+        if(item.tool_id) {
+            cJSON_AddStringToObject(msg, "tool_call_id", item.tool_id);
+        }
+        cJSON_AddStringToObject(msg, "content", item.content);
+        cJSON_AddItemToArray(messages, msg);
+    }
+    
+    cJSON *tools = cJSON_AddArrayToObject(req, "tools");
+    add_read_tool(tools);
+
+    char *body = cJSON_PrintUnformatted(req);
+    cJSON_Delete(req);
+    fprintf(stderr, "%s\n", body);
+
+    char url[512];
+    snprintf(url, sizeof(url), "%s/chat/completions", cfg->base_url);
+
+    char auth_header[512];
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", cfg->api_key);
+
+    
+    CURL *curl = curl_easy_init();
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    headers = curl_slist_append(headers, auth_header);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_response);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    free(body);
+    return res;
 }
