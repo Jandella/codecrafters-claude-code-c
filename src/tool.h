@@ -2,12 +2,34 @@
 #define TOOL_H
 
 #include <stdlib.h>
+#include <cjson/cJSON.h>
+
+typedef enum {
+    ExecuteTool_OK = 0,
+    ExecuteTool_Fail = 1
+} ExecuteToolCode;
+
+typedef struct cAgentToolResult {
+    char *tool_call_id;
+    char *content;
+} cAgentToolResult;
 
 typedef struct cAgentTool
 {
-    char *tool_call_id;
-    char *content;
+    char *name;
+    /*tool properties*/
+    void *properties;
+    /*pointer to function that destroy potentally allocated properties of tool*/
+    void (*destroy_properties)(void *properties);
+    /*pointer to function that executes the tool. Need toll_call json response and the result*/
+    ExecuteToolCode (*execute_tool)(struct cAgentTool *self, cJSON *tool_call, cAgentToolResult *result);
 } cAgentTool;
+
+
+
+
+cAgentTool *cAgentTool_create(char *name);
+void cAgentTool_destroy(cAgentTool *tool);
 
 
 

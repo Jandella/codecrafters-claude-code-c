@@ -1,5 +1,13 @@
 #include "read_tool.h"
 
+cAgentTool *cAgentTool_createReadTool(void)
+{
+    cAgentTool *node = cAgentTool_create("Read");
+    if(node){
+        node->execute_tool = execute_read;
+    }
+    return node;
+}
 
 void add_read_tool(cJSON *tools)
 {
@@ -31,6 +39,10 @@ long get_file_size(FILE *fptr)
     return fsize;
 }
 
+/**
+ * Parses the argument of the tool and writes in the buffer the result.
+ * Returns -1 if it fails, the argument length if it succeded
+ */
 size_t retrieve_argument_from_tool(char *raw_arguments, char *buffer, size_t buffer_size)
 {
     cJSON *parsed_arguments = cJSON_Parse(raw_arguments);
@@ -67,7 +79,7 @@ size_t retrieve_argument_from_tool(char *raw_arguments, char *buffer, size_t buf
     return length;
 }
 
-ReadToolCode execute_read(cJSON *tool_call, cAgentTool * result)
+ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResult * result)
 {
     cJSON *function_object = cJSON_GetObjectItem(tool_call, "function");
     cJSON *name = cJSON_GetObjectItem(function_object, "name");
@@ -77,7 +89,7 @@ ReadToolCode execute_read(cJSON *tool_call, cAgentTool * result)
     if (strcmp("Read", name_read) != 0)
     {
         fprintf(stderr, "Incorrect tool name. Expected Read, actual %s\n", name_read);
-        return ReadTool_Invalid;
+        return ExecuteTool_Fail;
     }
     cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
     char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
@@ -87,7 +99,7 @@ ReadToolCode execute_read(cJSON *tool_call, cAgentTool * result)
     if (length < 0)
     {
         fprintf(stderr, "Failed to retrieve argument from tool\n");
-        return ReadTool_Invalid;
+        return ExecuteTool_Fail;
     }
 
     fprintf(stderr, "Read tool to read file at path %s\n", file_path);
@@ -97,7 +109,7 @@ ReadToolCode execute_read(cJSON *tool_call, cAgentTool * result)
     {
         fclose(fptr);
         fprintf(stderr, "Failed to open file %s\n", file_path);
-        return ReadTool_Invalid;
+        return ExecuteTool_Fail;
     }
     result->content = NULL;
     
@@ -106,12 +118,12 @@ ReadToolCode execute_read(cJSON *tool_call, cAgentTool * result)
     {
         fclose(fptr);
         fprintf(stderr, "Failed to get the file size\n");
-        return ReadTool_Invalid;
+        return ExecuteTool_Fail;
     }
     result->content = malloc(sizeof(char) * file_size + 1);
     fread(result->content, 1, file_size, fptr);
     fclose(fptr);
     result->content[file_size] = '\0';
     printf("%s", result->content);
-    return ReadTool_OK;
+    return ExecuteTool_OK;
 }
