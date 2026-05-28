@@ -11,8 +11,9 @@ typedef struct api_call_params
 {
     char *api_key;
     char *base_url;
-    char *local_model
+    char *local_model;
 } api_call_params;
+
 struct response_buf
 {
     char *data;
@@ -41,7 +42,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg);
 
 int main(int argc, char *argv[])
 {
-    const char *prompt = NULL;
+    char *prompt = NULL;
     if (getopt(argc, argv, "p:") == 'p')
         prompt = optarg;
     if (!prompt)
@@ -141,7 +142,6 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
         if (res != CURLE_OK)
         {
             fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
-            free(resp.data);
             return 1;
         }
 

@@ -7,7 +7,8 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "-p 'What does `orange.py` contain? Respond with only file contents, no surrounding text/backticks.'"
+            "-p 'Use `C:/Scambio/ReadTest/README.md` to determine the chemical expiry period in months. Respond with only a number."
+            //"-p 'What does `orange.py` contain? Respond with only file contents, no surrounding text/backticks.'"
             //"-p How many tools are available to you in this request? Number only."
             //"-p Please compute 9 + 6. Respond with only a number."
         ]
