@@ -36,7 +36,7 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
     return total;
 }
 
-static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, struct response_buf *resp);
+static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, CURL* curl, struct response_buf *resp);
 
 static int loop(cAgent *agent, api_call_params *apiCfg);
 
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     return final_result;
 }
 
-static CURLcode api_call(api_call_params *cfg, cAgent *agent, struct response_buf *resp)
+static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct response_buf *resp)
 {
     cJSON *req = cJSON_CreateObject();
     cJSON_AddStringToObject(req, "model", cfg->local_model);
@@ -102,7 +102,7 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, struct response_bu
 
     char *body = cJSON_PrintUnformatted(req);
     cJSON_Delete(req);
-    fprintf(stderr, "%s\n", body);
+    fprintf(stderr, "Request body:\n%s\n", body);
 
     char url[512];
     snprintf(url, sizeof(url), "%s/chat/completions", cfg->base_url);
@@ -110,16 +110,18 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, struct response_bu
     char auth_header[512];
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", cfg->api_key);
 
-    CURL *curl = curl_easy_init();
+    if (!curl)
+    {
+        curl = curl_easy_init();
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_response);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp);
+    }
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
     headers = curl_slist_append(headers, auth_header);
-
-    curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_response);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp);
 
     CURLcode res = curl_easy_perform(curl);
 
@@ -131,13 +133,14 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, struct response_bu
 
 static int loop(cAgent *agent, api_call_params *apiCfg)
 {
-    struct response_buf resp = {NULL, 0};
     cAgentTool *readTool = cAgentTool_createReadTool();
-    cAgentToolResult toolResult = { NULL, NULL };
+    cAgentToolResult toolResult = {NULL, NULL};
     int done = 0;
+    CURL *curl = NULL;
     while (!done)
     {
-        CURLcode res = api_call(apiCfg, agent, &resp);
+        struct response_buf resp = {NULL, 0};
+        CURLcode res = api_call(apiCfg, agent, curl, &resp);
 
         if (res != CURLE_OK)
         {
@@ -147,6 +150,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
 
         cJSON *json = cJSON_Parse(resp.data);
         free(resp.data);
+        resp.size = 0;
         if (!json)
         {
             fprintf(stderr, "Failed to parse response JSON\n");
@@ -166,7 +170,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
         cJSON *content = cJSON_GetObjectItem(message, "content");
 
         char *response_data = cJSON_Print(json);
-        fprintf(stderr, "%s\n", response_data);
+        fprintf(stderr, "response data:\n%s\n", response_data);
         free(response_data);
 
         cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
@@ -183,7 +187,8 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
             {
                 cJSON *current_tool_call = cJSON_GetArrayItem(tool_calls, i);
                 ExecuteToolCode tool_result = readTool->execute_tool(readTool, current_tool_call, &toolResult);
-                if(tool_result != ExecuteTool_OK) {
+                if (tool_result != ExecuteTool_OK)
+                {
                     fprintf(stderr, "failed to execute tool %s\n", readTool->name);
                     cJSON_Delete(json);
                     return 1;
@@ -192,8 +197,6 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
                 free(toolResult.tool_call_id);
                 free(toolResult.content);
             }
-            
-            
         }
 
         cJSON_Delete(json);

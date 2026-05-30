@@ -104,7 +104,7 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
 
     fprintf(stderr, "Read tool to read file at path %s\n", file_path);
     FILE *fptr;
-    fptr = fopen(file_path, "r");
+    fptr = fopen(file_path, "rb");
     if (fptr == NULL)
     {
         fclose(fptr);
@@ -121,9 +121,14 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
         return ExecuteTool_Fail;
     }
     result->content = malloc(sizeof(char) * file_size + 1);
+    if(!result->content){
+        fclose(fptr);
+        fprintf(stderr, "Failed to allocate memory\n");
+        return ExecuteTool_Fail;
+    }
     fread(result->content, 1, file_size, fptr);
     fclose(fptr);
     result->content[file_size] = '\0';
-    printf("%s", result->content);
+    printf("%s\n", result->content);
     return ExecuteTool_OK;
 }
