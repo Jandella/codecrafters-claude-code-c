@@ -156,6 +156,9 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
             fprintf(stderr, "Failed to parse response JSON\n");
             return 1;
         }
+        char *response_data = cJSON_Print(json);
+        fprintf(stderr, "response data:\n%s\n", response_data);
+        free(response_data);
 
         cJSON *choices = cJSON_GetObjectItem(json, "choices");
         if (!cJSON_IsArray(choices) || cJSON_GetArraySize(choices) == 0)
@@ -169,13 +172,10 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
         cJSON *message = cJSON_GetObjectItem(first, "message");
         cJSON *content = cJSON_GetObjectItem(message, "content");
 
-        char *response_data = cJSON_Print(json);
-        fprintf(stderr, "response data:\n%s\n", response_data);
-        free(response_data);
-
         cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
         if (!cJSON_IsArray(tool_calls) || cJSON_GetArraySize(tool_calls) == 0)
         {
+            fprintf(stderr, "no tool call, answering:\n");
             // no tool calls -> print the message content
             printf("%s", cJSON_GetStringValue(content));
             done = 1;
@@ -183,6 +183,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
         else
         {
             int totalToolCalled = cJSON_GetArraySize(tool_calls);
+            fprintf(stderr, "tool call to execute: %d\n", totalToolCalled);
             for (int i = 0; i < totalToolCalled; i++)
             {
                 cJSON *current_tool_call = cJSON_GetArrayItem(tool_calls, i);
