@@ -38,7 +38,7 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
 
 static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, CURL* curl, struct response_buf *resp);
 
-static int loop(cAgent *agent, api_call_params *apiCfg);
+static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *final_response);
 
 int main(int argc, char *argv[])
 {
@@ -71,10 +71,19 @@ int main(int argc, char *argv[])
     cAgent_addPrompt(agent, prompt);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    int final_result = loop(agent, &apiCfg);
+    struct response_buf final_response = {NULL, 0};
+    int final_result = loop(agent, &apiCfg, &final_response);
 
     curl_global_cleanup();
     cAgent_destroyAgent(agent);
+
+    if(final_response.size == 0) {
+        fprintf(stderr, "Final response empty!\n");
+        return 1;
+    }
+    printf("%s", final_response.data);
+    free(final_response.data);
+    
     return final_result;
 }
 
@@ -131,7 +140,7 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
     return res;
 }
 
-static int loop(cAgent *agent, api_call_params *apiCfg)
+static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *final_response)
 {
     cAgentTool *readTool = cAgentTool_createReadTool();
     cAgentToolResult toolResult = {NULL, NULL};
@@ -175,9 +184,11 @@ static int loop(cAgent *agent, api_call_params *apiCfg)
         cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
         if (!cJSON_IsArray(tool_calls) || cJSON_GetArraySize(tool_calls) == 0)
         {
-            fprintf(stderr, "no tool call, answering:\n");
+            fprintf(stderr, "no tool call, coping answer to buffer result\n");
             // no tool calls -> print the message content
-            printf("%s", cJSON_GetStringValue(content));
+            char * response = cJSON_GetStringValue(content);
+            final_response->data = strdup(response);
+            final_response->size = strlen(response);
             done = 1;
         }
         else
