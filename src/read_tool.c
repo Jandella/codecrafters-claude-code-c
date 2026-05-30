@@ -103,32 +103,39 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
     }
 
     fprintf(stderr, "Read tool to read file at path %s\n", file_path);
-    FILE *fptr;
-    fptr = fopen(file_path, "rb");
-    if (fptr == NULL)
+    FILE *stream;
+    stream = fopen(file_path, "rb");
+    if (stream == NULL)
     {
-        fclose(fptr);
+        fclose(stream);
         fprintf(stderr, "Failed to open file %s\n", file_path);
         return ExecuteTool_Fail;
     }
     result->content = NULL;
     
-    long file_size = get_file_size(fptr);
+    long file_size = get_file_size(stream);
     if (file_size == -1)
     {
-        fclose(fptr);
+        fclose(stream);
         fprintf(stderr, "Failed to get the file size\n");
         return ExecuteTool_Fail;
     }
     result->content = malloc(sizeof(char) * file_size + 1);
     if(!result->content){
-        fclose(fptr);
+        fclose(stream);
         fprintf(stderr, "Failed to allocate memory\n");
         return ExecuteTool_Fail;
     }
-    fread(result->content, 1, file_size, fptr);
-    fclose(fptr);
+
+    size_t how_many = fread(result->content, file_size, 1, stream);
+    if (how_many == 0 && ferror(stream)) {
+        int error = ferror(stream);
+        fprintf(stderr, "%x\n", error);
+        fclose(stream);
+        return ExecuteTool_Fail;
+    }
+    fclose(stream);
     result->content[file_size] = '\0';
-    printf("%s\n", result->content);
+    fprintf(stderr, "File content:\n%s\n", result->content);
     return ExecuteTool_OK;
 }
