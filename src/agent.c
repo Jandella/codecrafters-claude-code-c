@@ -127,12 +127,15 @@ ExecuteToolCode cAgent_executeTool(cAgent *agent, cJSON *tool_call, cAgentToolRe
     cToolList *current_tool = agent->tools;
     while (!found && i < agent->availableTools)
     {
-        if (current_tool && current_tool->element)
+        if (current_tool)
         {
-            final_result = current_tool->element->execute_tool(current_tool->element, tool_call, result);
-            if (final_result == ExecuteTool_OK)
+            if (current_tool->element)
             {
-                found = 1;
+                final_result = current_tool->element->execute_tool(current_tool->element, tool_call, result);
+                if (final_result == ExecuteTool_OK)
+                {
+                    found = 1;
+                }
             }
             current_tool = current_tool->next;
         }

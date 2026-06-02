@@ -37,7 +37,7 @@ static size_t curl_write_response(void *contents, size_t size, size_t nmemb, voi
     return total;
 }
 
-static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, CURL* curl, struct response_buf *resp);
+static CURLcode api_call(api_call_params *apiCfg, cAgent *agent, CURL *curl, struct response_buf *resp);
 
 static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *final_response);
 
@@ -82,13 +82,14 @@ int main(int argc, char *argv[])
     curl_global_cleanup();
     cAgent_destroyAgent(agent);
 
-    if(final_response.size == 0) {
+    if (final_response.size == 0)
+    {
         fprintf(stderr, "Final response empty!\n");
         return 1;
     }
     printf("%s", final_response.data);
     free(final_response.data);
-    
+
     return final_result;
 }
 
@@ -98,7 +99,7 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
     cJSON_AddStringToObject(req, "model", cfg->local_model);
     cJSON *messages = cJSON_AddArrayToObject(req, "messages");
     int number_of_messages = cJSON_GetArraySize(agent->json_messages);
-    
+
     for (size_t i = 0; i < number_of_messages; i++)
     {
         cJSON *item = cJSON_GetArrayItem(agent->json_messages, i);
@@ -107,14 +108,14 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
     }
 
     cJSON *tools = cJSON_AddArrayToObject(req, "tools");
-    if(agent->tools && agent->tools->element) {
+    if (agent->tools && agent->tools->element)
+    {
         cToolList *current = agent->tools;
         while (current)
         {
             current->element->add_to_json(tools);
             current = current->next;
         }
-        
     }
 
     char *body = cJSON_PrintUnformatted(req);
@@ -150,8 +151,7 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
 
 static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *final_response)
 {
-    cAgentTool *readTool = cAgentTool_createReadTool();
-    cAgentToolResult toolResult = {NULL, NULL};
+
     int done = 0;
     CURL *curl = NULL;
     while (!done)
@@ -196,7 +196,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
         {
             fprintf(stderr, "no tool call, coping answer to buffer result\n");
             // no tool calls -> print the message content
-            char * response = cJSON_GetStringValue(content);
+            char *response = cJSON_GetStringValue(content);
             final_response->data = strdup(response);
             final_response->size = strlen(response);
             done = 1;
@@ -207,11 +207,13 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
             fprintf(stderr, "tool call to execute: %d\n", totalToolCalled);
             for (int i = 0; i < totalToolCalled; i++)
             {
+                cAgentToolResult toolResult = {NULL, NULL};
                 cJSON *current_tool_call = cJSON_GetArrayItem(tool_calls, i);
-                ExecuteToolCode tool_result = readTool->execute_tool(readTool, current_tool_call, &toolResult);
-                if (tool_result != ExecuteTool_OK)
+
+                ExecuteToolCode tool_resultCode = cAgent_executeTool(agent, current_tool_call, &toolResult);
+                if (tool_resultCode != ExecuteTool_OK)
                 {
-                    fprintf(stderr, "failed to execute tool %s\n", readTool->name);
+                    fprintf(stderr, "failed to execute tool\n");
                     cJSON_Delete(json);
                     return 1;
                 }
@@ -226,3 +228,4 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
 
     return 0;
 }
+

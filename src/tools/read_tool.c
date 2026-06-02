@@ -22,8 +22,8 @@ void add_read_tool(cJSON *tools)
     cJSON_AddStringToObject(function, "name", read_tool_name);
     cJSON_AddStringToObject(function, "description", "Read and return the contents of a file");
     cJSON *parameters = cJSON_AddObjectToObject(function, "parameters");
-    cJSON_AddStringToObject(function, "type", "object");
     cJSON *properties = cJSON_AddObjectToObject(parameters, "properties");
+    cJSON_AddStringToObject(parameters, "type", "object");
     cJSON *file_path = cJSON_AddObjectToObject(properties, "file_path");
     cJSON_AddStringToObject(file_path, "type", "string");
     cJSON_AddStringToObject(file_path, "description", "The path to the file to read");

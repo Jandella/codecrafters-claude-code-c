@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include "write_tool.h"
-static struct write_parameters
+struct write_parameters
 {
     char *file_path;
     char *file_content;
 };
+
 static char *write_tool_name = "write_file";
 
 cAgentTool *cAgentTool_createWriteTool(void)
@@ -33,8 +34,8 @@ void add_write_tool(cJSON *tools)
     cJSON_AddStringToObject(function, "name", write_tool_name);
     cJSON_AddStringToObject(function, "description", "Write content to a new file or ovewrite content to the existing file.");
     cJSON *parameters = cJSON_AddObjectToObject(function, "parameters");
-    cJSON_AddStringToObject(function, "type", "object");
     cJSON *properties = cJSON_AddObjectToObject(parameters, "properties");
+    cJSON_AddStringToObject(parameters, "type", "object");
     cJSON *file_path = cJSON_AddObjectToObject(properties, "file_path");
     cJSON_AddStringToObject(file_path, "type", "string");
     cJSON_AddStringToObject(file_path, "description", "The path to the file to write to");
