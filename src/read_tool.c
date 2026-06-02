@@ -140,6 +140,9 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
         fprintf(stderr, "Incorrect tool name. Expected Read, actual %s\n", name_read);
         return ExecuteTool_Fail;
     }
+    cJSON *id = cJSON_GetObjectItem(tool_call, "id");
+    char *id_read = cJSON_GetStringValue(id);
+    result->tool_call_id = strdup(id_read);
     cJSON *arguments_dictionary = cJSON_GetObjectItem(function_object, "arguments");
     char *raw_arguments = cJSON_GetStringValue(arguments_dictionary);
     fprintf(stderr, "raw args: %s\n", raw_arguments);
@@ -154,38 +157,5 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
     fprintf(stderr, "Read tool to read file at path %s\n", file_path);
     result->content = NULL;
     ExecuteToolCode codeResult = using_file(file_path, "rb", result, execute_read_internal);
-    // FILE *stream;
-    // stream = fopen(file_path, "rb");
-    // if (stream == NULL)
-    // {
-    //     fprintf(stderr, "Failed to open file %s\n", file_path);
-    //     return ExecuteTool_Fail;
-    // }
-
-    // long file_size = get_file_size(stream);
-    // if (file_size == -1)
-    // {
-    //     fclose(stream);
-    //     fprintf(stderr, "Failed to get the file size\n");
-    //     return ExecuteTool_Fail;
-    // }
-    // result->content = malloc(sizeof(char) * file_size + 1);
-    // if(!result->content){
-    //     fclose(stream);
-    //     fprintf(stderr, "Failed to allocate memory\n");
-    //     return ExecuteTool_Fail;
-    // }
-
-    // size_t how_many = fread(result->content, file_size, 1, stream);
-    // if (how_many == 0 && ferror(stream)) {
-    //     int error = ferror(stream);
-    //     fprintf(stderr, "%x\n", error);
-    //     fclose(stream);
-    //     return ExecuteTool_Fail;
-    // }
-    // fclose(stream);
-    // result->content[file_size] = '\0';
-
-    // return ExecuteTool_OK;
     return codeResult;
 }

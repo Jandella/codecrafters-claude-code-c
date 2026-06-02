@@ -145,7 +145,6 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
     cAgentTool *readTool = cAgentTool_createReadTool();
     cAgentToolResult toolResult = {NULL, NULL};
     int done = 0;
-    int agent_tries = 0;
     CURL *curl = NULL;
     while (!done)
     {
@@ -194,27 +193,22 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
         }
         else
         {
-            //testing why I'm getting internal server error from remote agent
-            agent_tries++;
-            // int totalToolCalled = cJSON_GetArraySize(tool_calls);
-            // fprintf(stderr, "tool call to execute: %d\n", totalToolCalled);
-            // for (int i = 0; i < totalToolCalled; i++)
-            // {
-            //     cJSON *current_tool_call = cJSON_GetArrayItem(tool_calls, i);
-            //     ExecuteToolCode tool_result = readTool->execute_tool(readTool, current_tool_call, &toolResult);
-            //     if (tool_result != ExecuteTool_OK)
-            //     {
-            //         fprintf(stderr, "failed to execute tool %s\n", readTool->name);
-            //         cJSON_Delete(json);
-            //         return 1;
-            //     }
-            //     cAgent_addPromptTool(agent, toolResult.tool_call_id, toolResult.content);
-            //     free(toolResult.tool_call_id);
-            //     free(toolResult.content);
-            // }
-        }
-        if(agent_tries > 2){
-            done = 1;
+            int totalToolCalled = cJSON_GetArraySize(tool_calls);
+            fprintf(stderr, "tool call to execute: %d\n", totalToolCalled);
+            for (int i = 0; i < totalToolCalled; i++)
+            {
+                cJSON *current_tool_call = cJSON_GetArrayItem(tool_calls, i);
+                ExecuteToolCode tool_result = readTool->execute_tool(readTool, current_tool_call, &toolResult);
+                if (tool_result != ExecuteTool_OK)
+                {
+                    fprintf(stderr, "failed to execute tool %s\n", readTool->name);
+                    cJSON_Delete(json);
+                    return 1;
+                }
+                cAgent_addPromptTool(agent, toolResult.tool_call_id, toolResult.content);
+                free(toolResult.tool_call_id);
+                free(toolResult.content);
+            }
         }
 
         cJSON_Delete(json);
