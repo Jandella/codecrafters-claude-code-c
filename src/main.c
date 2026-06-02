@@ -5,7 +5,7 @@
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 #include "agent.h"
-#include "read_tool.h"
+#include "tools/read_tool.h"
 
 typedef struct api_call_params
 {
@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
 
     cAgent *agent = cAgent_createAgent();
     cAgent_addUserPrompt(agent, prompt);
+    cAgentTool *read_tool = cAgentTool_createReadTool();
+    cAgent_addTool(agent, read_tool);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     struct response_buf final_response = {NULL, 0};
@@ -102,7 +104,15 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
     }
 
     cJSON *tools = cJSON_AddArrayToObject(req, "tools");
-    add_read_tool(tools);
+    if(agent->tools && agent->tools->element) {
+        cToolList *current = agent->tools;
+        while (current)
+        {
+            current->element->add_to_json(tools);
+            current = current->next;
+        }
+        
+    }
 
     char *body = cJSON_PrintUnformatted(req);
     cJSON_Delete(req);
@@ -202,7 +212,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
                     cJSON_Delete(json);
                     return 1;
                 }
-                cAgent_addPromptTool(agent, toolResult.tool_call_id, toolResult.content);
+                cAgent_addToolPrompt(agent, toolResult.tool_call_id, toolResult.content);
                 free(toolResult.tool_call_id);
                 free(toolResult.content);
             }

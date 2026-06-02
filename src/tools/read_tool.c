@@ -1,11 +1,14 @@
 #include "read_tool.h"
 
+static char *read_tool_name = "read_file";
+
 cAgentTool *cAgentTool_createReadTool(void)
 {
-    cAgentTool *node = cAgentTool_create("Read");
+    cAgentTool *node = cAgentTool_create(read_tool_name);
     if (node)
     {
         node->execute_tool = execute_read;
+        node->add_to_json = add_read_tool;
     }
     return node;
 }
@@ -16,7 +19,7 @@ void add_read_tool(cJSON *tools)
     cJSON_AddItemToArray(tools, tool);
     cJSON_AddStringToObject(tool, "type", "function");
     cJSON *function = cJSON_AddObjectToObject(tool, "function");
-    cJSON_AddStringToObject(function, "name", "Read");
+    cJSON_AddStringToObject(function, "name", read_tool_name);
     cJSON_AddStringToObject(function, "description", "Read and return the contents of a file");
     cJSON *parameters = cJSON_AddObjectToObject(function, "parameters");
     cJSON_AddStringToObject(function, "type", "object");
@@ -135,10 +138,10 @@ ExecuteToolCode execute_read(cAgentTool *tool, cJSON *tool_call, cAgentToolResul
     char *name_read = cJSON_GetStringValue(name);
     fprintf(stderr, "%s\n", name_read);
 
-    if (strcmp("Read", name_read) != 0)
+    if (strcmp(read_tool_name, name_read) != 0)
     {
-        fprintf(stderr, "Incorrect tool name. Expected Read, actual %s\n", name_read);
-        return ExecuteTool_Fail;
+        fprintf(stderr, "Incorrect tool name. Expected %s, actual %s\n", read_tool_name,  name_read);
+        return ExecuteTool_WrongTool;
     }
     cJSON *id = cJSON_GetObjectItem(tool_call, "id");
     char *id_read = cJSON_GetStringValue(id);
