@@ -103,7 +103,7 @@ void cAgent_addTool(cAgent *agent, cAgentTool *tool)
         agent->tools = new_node;
         return;
     }
-    current = agent->tools->next;
+    current = agent->tools;
     while (current->next != NULL)
     {
         current = current->next;

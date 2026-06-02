@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "tool.h"
 
 cAgentTool *cAgentTool_create(char *name)
@@ -28,3 +29,4 @@ void cAgentTool_destroy(cAgentTool *tool)
 
     free(tool);
 }
+

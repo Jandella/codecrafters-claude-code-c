@@ -34,6 +34,4 @@ cAgentTool *cAgentTool_create(char *name);
 void cAgentTool_destroy(cAgentTool *tool);
 
 
-
-
 #endif // TOOL_H

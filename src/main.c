@@ -6,6 +6,7 @@
 #include <cjson/cJSON.h>
 #include "agent.h"
 #include "tools/read_tool.h"
+#include "tools/write_tool.h"
 
 typedef struct api_call_params
 {
@@ -71,6 +72,8 @@ int main(int argc, char *argv[])
     cAgent_addUserPrompt(agent, prompt);
     cAgentTool *read_tool = cAgentTool_createReadTool();
     cAgent_addTool(agent, read_tool);
+    cAgentTool *write_tool = cAgentTool_createWriteTool();
+    cAgent_addTool(agent, write_tool);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     struct response_buf final_response = {NULL, 0};

@@ -31,6 +31,18 @@ void add_read_tool(cJSON *tools)
     cJSON *required_element = cJSON_CreateString("file_path");
     cJSON_AddItemToArray(required_array, required_element);
 }
+
+/**
+ * Returns the file size. Can return -1 if error happens.
+ */
+long get_file_size(FILE *fptr)
+{
+    fseek(fptr, 0, SEEK_END);
+    long fsize = ftell(fptr);
+    rewind(fptr);
+    return fsize;
+}
+
 /**
  * Manages the opening of the file with error&reasource clean up
  */
@@ -49,16 +61,6 @@ static ExecuteToolCode using_file(const char *file_name, const char *open_mode, 
         fprintf(stderr, "Error opening file in \"%s\" mode\n", open_mode);
     }
     return code;
-}
-/**
- * Returns the file size. Can return -1 if error happens.
- */
-long get_file_size(FILE *fptr)
-{
-    fseek(fptr, 0, SEEK_END);
-    long fsize = ftell(fptr);
-    rewind(fptr);
-    return fsize;
 }
 
 /**
