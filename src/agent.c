@@ -125,7 +125,7 @@ ExecuteToolCode cAgent_executeTool(cAgent *agent, cJSON *tool_call, cAgentToolRe
     int i = 0;
     ExecuteToolCode final_result = ExecuteTool_Fail;
     cToolList *current_tool = agent->tools;
-    while (!found && i < agent->availableTools)
+    while (!found && i <= agent->availableTools)
     {
         if (current_tool)
         {

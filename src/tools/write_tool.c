@@ -145,7 +145,7 @@ ExecuteToolCode execute_write(cAgentTool *tool, cJSON *tool_call, cAgentToolResu
         return ExecuteTool_Fail;
     }
 
-    fprintf(stderr, "Write tool to read file at path %s\n", p.file_content);
+    fprintf(stderr, "Write tool to read file at path %s\n", p.file_path);
     result->content = NULL;
     ExecuteToolCode codeResult = using_file(p.file_path, "w", p.file_content, result, execute_write_internal);
     //clean up
