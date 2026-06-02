@@ -180,6 +180,8 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
         cJSON *first = cJSON_GetArrayItem(choices, 0);
         cJSON *message = cJSON_GetObjectItem(first, "message");
         cJSON *content = cJSON_GetObjectItem(message, "content");
+        cJSON *role = cJSON_GetObjectItem(message, "role");
+        cAgent_addResponseMessage(agent, cJSON_GetStringValue(role), cJSON_GetStringValue(content));
 
         cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
         if (!cJSON_IsArray(tool_calls) || cJSON_GetArraySize(tool_calls) == 0)

@@ -29,6 +29,8 @@ void cAgent_destroyAgent(cAgent* agent);
 
 /*Adds a user prompt to the agent message array*/
 message_prompt * cAgent_addPrompt(cAgent *agent, char* content);
+/*Adds the agent response to the agent message array*/
+message_prompt * cAgent_addResponseMessage(cAgent * agent, char* role, char * content);
 /*Adds a tool prompt to the agent message array*/
 message_prompt * cAgent_addPromptTool(cAgent *agent, char * tool_id, char *content);
 

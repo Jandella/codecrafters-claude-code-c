@@ -100,6 +100,9 @@ message_prompt *cAgent_addPrompt(cAgent *agent, char *content)
 {
     return add_message(agent, "user", NULL, content);
 }
+message_prompt * cAgent_addResponseMessage(cAgent * agent, char* role, char * content) {
+    return add_message(agent, role, NULL, content);
+}
 message_prompt *cAgent_addPromptTool(cAgent *agent, char *tool_id, char *content)
 {
     return add_message(agent, "tool", tool_id, content);
