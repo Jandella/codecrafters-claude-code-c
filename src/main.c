@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Logs from your program will appear here!\n");
 
     cAgent *agent = cAgent_createAgent();
-    cAgent_addPrompt(agent, prompt);
+    cAgent_addUserPrompt(agent, prompt);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     struct response_buf final_response = {NULL, 0};
@@ -92,17 +92,12 @@ static CURLcode api_call(api_call_params *cfg, cAgent *agent, CURL *curl, struct
     cJSON *req = cJSON_CreateObject();
     cJSON_AddStringToObject(req, "model", cfg->local_model);
     cJSON *messages = cJSON_AddArrayToObject(req, "messages");
-    messages_list *ma = agent->messages;
-    for (size_t i = 0; i < ma->count; i++)
+    int number_of_messages = cJSON_GetArraySize(agent->json_messages);
+    
+    for (size_t i = 0; i < number_of_messages; i++)
     {
-        message_prompt item = ma->first[i];
-        cJSON *msg = cJSON_CreateObject();
-        cJSON_AddStringToObject(msg, "role", item.role);
-        if (item.tool_id)
-        {
-            cJSON_AddStringToObject(msg, "tool_call_id", item.tool_id);
-        }
-        cJSON_AddStringToObject(msg, "content", item.content);
+        cJSON *item = cJSON_GetArrayItem(agent->json_messages, i);
+        cJSON *msg = cJSON_Duplicate(item, 1);
         cJSON_AddItemToArray(messages, msg);
     }
 
@@ -181,7 +176,7 @@ static int loop(cAgent *agent, api_call_params *apiCfg, struct response_buf *fin
         cJSON *message = cJSON_GetObjectItem(first, "message");
         cJSON *content = cJSON_GetObjectItem(message, "content");
         cJSON *role = cJSON_GetObjectItem(message, "role");
-        cAgent_addResponseMessage(agent, cJSON_GetStringValue(role), cJSON_GetStringValue(content));
+        cAgent_addJsonPrompt(agent, message);
 
         cJSON *tool_calls = cJSON_GetObjectItem(message, "tool_calls");
         if (!cJSON_IsArray(tool_calls) || cJSON_GetArraySize(tool_calls) == 0)

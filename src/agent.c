@@ -9,7 +9,10 @@ cAgent *cAgent_createAgent(void)
     cAgent *node = (cAgent *)malloc(sizeof(cAgent));
     if (node)
     {
-        node->messages = NULL;
+        node->json_messages = cJSON_CreateArray();
+        if(!node->json_messages){
+            //todo: manage error or retry in the add function ?
+        }
     }
 
     return node;
@@ -19,93 +22,51 @@ void cAgent_destroyAgent(cAgent *agent)
 {
     if (!agent)
         return;
-
-    if (agent->messages)
+    if (agent->json_messages)
     {
-        messages_list *ma = agent->messages;
-        if (ma->first)
-        {
-            // need to free strings
-            for (size_t i = 0; i < ma->count; i++)
-            {
-                if (ma->first[i].role)
-                    free(ma->first[i].role);
-                if (ma->first[i].tool_id)
-                    free(ma->first[i].tool_id);
-                if (ma->first[i].content)
-                    free(ma->first[i].content);
-            }
-            // free the messages array
-            free(ma->first);
-        }
-        // free array containter
-        free(ma);
-        agent->messages = NULL;
+        cJSON_Delete(agent->json_messages);
     }
-    
     // free agent
     free(agent);
 }
 
-/*internal constructor for messages array inside agent struct */
-static void create_messages(cAgent *agent)
+
+
+static void add_json_tool(cAgent *agent, char *tool_id, char *content)
 {
-    if (!agent->messages)
+    cJSON *msg = cJSON_CreateObject();
+    if(!msg)
     {
-        agent->messages = (messages_list *)malloc(sizeof(messages_list));
-        agent->messages->first = (message_prompt *)malloc(DEFAULT_SIZE * sizeof(message_prompt));
-        memset(agent->messages->first, '\0', (DEFAULT_SIZE * sizeof(message_prompt)));
-        agent->messages->count = 0;
-        agent->messages->current_size = DEFAULT_SIZE;
+        //todo: manage errors
+        return;
     }
+    cJSON_AddStringToObject(msg, "role", "tool");
+    cJSON_AddStringToObject(msg, "tool_call_id", tool_id);
+    cJSON_AddStringToObject(msg, "content", content);
+    cJSON_AddItemToArray(agent->json_messages, msg);
 }
 
-/*internal function to add a generic message*/
-static message_prompt *add_message(cAgent *agent, char *role, char *tool_id, char *content)
+void cAgent_addUserPrompt(cAgent *agent, char *content) {
+    cJSON *msg = cJSON_CreateObject();
+    if(!msg)
+    {
+        //todo: manage errors
+        return;
+    }
+    cJSON_AddStringToObject(msg, "role", "user");
+    cJSON_AddStringToObject(msg, "content", content);
+    cJSON_AddItemToArray(agent->json_messages, msg);
+}
+
+void cAgent_addPromptTool(cAgent *agent, char *tool_id, char *content)
 {
-    if (!agent)
-        return NULL;
-    if (!agent->messages)
-        create_messages(agent);
-    messages_list *ma = agent->messages;
-    int index = agent->messages->count;
-    if (index >= ma->current_size)
-    {
-        ma->first = realloc(ma->first, ma->current_size + (DEFAULT_SIZE * sizeof(message_prompt)));
-        ma->current_size += DEFAULT_SIZE;
-    }
-
-    ma->first[index].role = NULL;
-    ma->first[index].tool_id = NULL;
-    ma->first[index].content = NULL;
-    // MEMO: strdup allocs memory
-    if (role)
-    {
-        ma->first[index].role = strdup(role);
-    }
-    if (tool_id)
-    {
-        ma->first[index].tool_id = strdup(tool_id);
-    }
-    if (content)
-    {
-        ma->first[index].content = strdup(content);
-    }
-    ma->count++;
-    message_prompt *ptr = &ma->first[index];
-    return ptr;
+    add_json_tool(agent, tool_id, content);
 }
 
-message_prompt *cAgent_addPrompt(cAgent *agent, char *content)
+void cAgent_addJsonPrompt(cAgent *agent, cJSON *json_message)
 {
-    return add_message(agent, "user", NULL, content);
+    cJSON *message_copy = cJSON_Duplicate(json_message, 1);
+    // todo: manage errors
+    if (message_copy)
+        cJSON_AddItemToArray(agent->json_messages, message_copy);
 }
-message_prompt * cAgent_addResponseMessage(cAgent * agent, char* role, char * content) {
-    return add_message(agent, role, NULL, content);
-}
-message_prompt *cAgent_addPromptTool(cAgent *agent, char *tool_id, char *content)
-{
-    return add_message(agent, "tool", tool_id, content);
-}
-
-
