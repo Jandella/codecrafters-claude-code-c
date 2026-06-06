@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "write_tool.h"
+/* this struct will hold parameter values retrieved from JSON tool call */
 struct write_parameters
 {
     char *file_path;

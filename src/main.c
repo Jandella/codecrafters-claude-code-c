@@ -7,6 +7,7 @@
 #include "agent.h"
 #include "tools/read_tool.h"
 #include "tools/write_tool.h"
+#include "tools/bash_tool.h"
 
 typedef struct api_call_params
 {
@@ -74,6 +75,8 @@ int main(int argc, char *argv[])
     cAgent_addTool(agent, read_tool);
     cAgentTool *write_tool = cAgentTool_createWriteTool();
     cAgent_addTool(agent, write_tool);
+    cAgentTool *bash_tool = cAgentTool_createBashTool();
+    cAgent_addTool(agent, bash_tool);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     struct response_buf final_response = {NULL, 0};
